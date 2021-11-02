@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-md-8 offset-2">
+        <h2>Report</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-2">
+        {% for c in content %}
+            <p>Scan ID: {{ content[c]["parent_id"] }}</p>
+            <p>Repo: {{ content[c]["repo"] }}</p>
+            <p>Filename: {{ content[c]["filename"] }}</p>
+            <p>Similarity Score: {{ content[c]["score"] }}</p>
+            <p>URL: {{ content[c]["url"] }}</p>
+            {% for i in content[c]["internet"] %}
+
+                <p>{{ i.url }}</p>
+                <p>{{ i.title }}</p>
+
+            {% endfor %}
+
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
