@@ -1,7 +1,7 @@
 import json
 import os
 
-from flask import Flask, request, render_template
+from quart import Quart, request, render_template
 import psycopg2
 from urllib.parse import urlparse
 
@@ -11,7 +11,7 @@ from helpers.run_checks import process_checks
 
 import env
 
-app = Flask(__name__)
+app = Quart(__name__)
 
 EMAIL_ADDRESS = os.environ.get("CL_EMAIL_ADDRESS")
 KEY = os.environ.get("CL_KEY")
@@ -26,7 +26,7 @@ def get_connection():
     return conn
 
 
-def store_data(parent, uuid, repo, url, filename, score, internet, database):
+async def store_data(parent, uuid, repo, url, filename, score, internet, database):
 
     conn = get_connection()
     cur = conn.cursor()
@@ -46,7 +46,7 @@ def get_report(parent_id):
     conn = get_connection()
     cur = conn.cursor()
 
-    sql_string = "SELECT * FROM repos WHERE parent_id = %s ORDER BY score;"
+    sql_string = "SELECT * FROM repos WHERE parent_id = %s ORDER BY score DESC;"
     values_tuple = (parent_id,)
 
     cur.execute(sql_string, values_tuple)
@@ -63,6 +63,7 @@ def get_report(parent_id):
         rs[r[0]]["url"] = r[4].strip()
         rs[r[0]]["internet"] = r[5]
         rs[r[0]]["databases"] = r[6]
+        rs[r[0]]["scan_id"] = r[7].strip()
         rs[r[0]]["score"] = r[8]
 
     conn.close()
@@ -72,29 +73,30 @@ def get_report(parent_id):
 
 
 @app.route("/")
-def index():
+async def index():
 
-    return render_template("index.html")
+    return await render_template("index.html")
 
 
 @app.route("/submit", methods=["POST"])
-def submit():
+async def submit():
 
     auth_token = Copyleaks.login(EMAIL_ADDRESS, KEY)
 
-    repo = request.form["repo"]
+    repo = await request.form
 
     base_url = urlparse(request.base_url)
 
-    parent_id = process_checks(repo, get_urls(repo), auth_token, base_url.hostname)
+    parent_id = process_checks(repo["repo"], get_urls(repo["repo"]), auth_token, base_url.hostname)
 
-    return render_template("ok.html", parent=parent_id)
+    return await render_template("ok.html", parent=parent_id)
 
 
 @app.route("/scans/<string:uuid>", methods=["POST"])
-def scans(uuid):
+async def scans(uuid):
 
-    result = json.loads(request.data)
+    data = await request.data
+    result = json.loads(data)
     scan_id = result["scannedDocument"]["scanId"]
 
     if "metadata" in result["scannedDocument"]:
@@ -104,23 +106,26 @@ def scans(uuid):
         url = metadata["finalUrl"] if "finalUrl" in metadata else "no_url"
 
         score = result["results"]["score"]["aggregatedScore"] or 0.0
-        payload = result["developerPayload"].split(":") if "developerPayload" else ["repo_error", "0"]
+        payload = result["developerPayload"].split(":") if result["developerPayload"] else ["repo_error", "0"]
         repo = payload[0]
         parent = payload[1]
         internet = json.dumps(result["results"]["internet"]) or ""
         database = json.dumps(result["results"]["database"]) or ""
-        store_data(parent, uuid, repo, url, filename, score, internet, database)
+        await store_data(parent, uuid, repo, url, filename, score, internet, database)
         print(f"Stored: {uuid}, {filename}, {score}")
     
-    return request.data
+    return await request.data
 
 
 @app.route("/report/<string:uuid>")
-def report(uuid):
+async def report(uuid):
 
     report = get_report(uuid)
 
-    return render_template("report.html", content=report)
+    repo = list(report.values())[0]["repo"]
+    parent_id = list(report.values())[0]["parent_id"]
+
+    return await render_template("report.html", content=report, repo=repo, parent_id=parent_id)
 
 
 if __name__ == "__main__":

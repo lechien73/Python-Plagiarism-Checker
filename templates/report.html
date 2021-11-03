@@ -4,26 +4,58 @@
 
 <div class="row">
     <div class="col-md-8 offset-2">
-        <h2>Report</h2>
-    </div>
-</div>
+        <h2>Results for {{ repo }}</h2>
 
-<div class="row">
-    <div class="col-md-8 offset-2">
+        <div id="accordion">
         {% for c in content %}
-            <p>Scan ID: {{ content[c]["parent_id"] }}</p>
-            <p>Repo: {{ content[c]["repo"] }}</p>
-            <p>Filename: {{ content[c]["filename"] }}</p>
-            <p>Similarity Score: {{ content[c]["score"] }}</p>
-            <p>URL: {{ content[c]["url"] }}</p>
-            {% for i in content[c]["internet"] %}
+            <div class="card">
+                <div class="card-header" id='{{ content[c]["scan_id"] }}'>
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" data-toggle="collapse" data-target='#data{{ content[c]["scan_id"] }}' aria-expanded="true" aria-controls='data{{ content[c]["scan_id"] }}'>
+                        {{ content[c]["filename"] }}: <span class='
+                        {% if content[c]["score"] >= 70 %}
+                            text-danger
+                        {% elif content[c]["score"] >= 50  %}
+                            text-warning
+                        {% else %}
+                            text-success
+                        {% endif %}'>{{ content[c]["score"] }}</span>
+                        </button>
+                    </h5>
+                </div>
 
-                <p>{{ i.url }}</p>
-                <p>{{ i.title }}</p>
+                <div id='data{{ content[c]["scan_id"] }}' class="collapse" aria-labelledby='{{ content[c]["scan_id"] }}' data-parent="#accordion">
+                    <div class="card-body">
+                        {% if content[c]["url"] != "no_url" %}
+                            <p>URL: {{ content[c]["url"] }}</p>
+                        {% endif %}
 
-            {% endfor %}
+                        {% if content[c]["internet"] %}
+                            <h4>Matches found on the Internet</h4>
+                            {% for i in content[c]["internet"] %}
 
+                                <p>{{ i.url }}</p>
+                                <p>{{ i.title }} {{ i.matchedWords }} words match</p>
+
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if content[c]["databases"] %}
+                            <h4>Matches found in Internal Databases</h4>
+
+                            {% for d in content[c]["databases"] %}
+
+                                <p>{{ d.url }}</p>
+                                <p>{{ d.title }} {{ d.matchedWords }} words match</p>
+
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        <hr>
         {% endfor %}
+        </div>
     </div>
 </div>
 

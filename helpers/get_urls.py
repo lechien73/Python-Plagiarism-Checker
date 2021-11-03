@@ -21,10 +21,11 @@ def get_urls(repo_name):
     # Build list of urls of raw source code files to be scanned
     while contents:
         file_content = contents.pop(0)
-        if file_content.type == "dir" and file_content.name != '.vscode':
+        if file_content.type == "dir" and file_content.name != '.vscode' \
+          and file_content.name != "migrations":
             contents.extend(repo.get_contents(file_content.path))
         else:
-            if file_content.name not in ignore:
+            if file_content.name not in ignore and file_content.name not in urls:
                 if file_content.name.split('.')[-1] in ['html', 'css', 'js', 'py']:
                     urls.append(file_content.download_url)
     
