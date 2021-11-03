@@ -9,8 +9,6 @@ from helpers.copyleaks import Copyleaks, Products
 from helpers.get_urls import get_urls
 from helpers.run_checks import process_checks
 
-import env
-
 app = Quart(__name__)
 
 EMAIL_ADDRESS = os.environ.get("CL_EMAIL_ADDRESS")
