@@ -1,1 +1,1 @@
-web: gunicorn plcheck:app
+web: python3 plcheck.py
